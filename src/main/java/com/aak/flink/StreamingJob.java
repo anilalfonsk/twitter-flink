@@ -18,13 +18,15 @@
 
 package com.aak.flink;
 
+import com.aak.flink.constants.Sentiment;
 import com.aak.flink.endpoints.SearchEndPoints;
 import com.aak.flink.filters.EmptyFilter;
 import com.aak.flink.filters.LanguageFilter;
+import com.aak.flink.maps.GetCleanedTweetTextMap;
+import com.aak.flink.maps.GetSentimentMap;
 import com.aak.flink.maps.MapToJson;
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.twitter.TwitterSource;
@@ -43,11 +45,13 @@ public class StreamingJob {
 		TwitterSource tws = new TwitterSource(props);
 		tws.setCustomEndpointInitializer(new SearchEndPoints());
 		DataStream<String> streamSource = env.addSource(tws);
-		DataStream<JsonObject> jsonStream = streamSource
+		DataStream<Tuple2<String, Sentiment>> cleanedTweetStream = streamSource
 				.filter(new EmptyFilter())
-				.flatMap(new MapToJson());
-		DataStream<JsonObject> filteredStream = jsonStream.filter(new LanguageFilter());
-		filteredStream.print();
+				.flatMap(new MapToJson())
+				.filter(new LanguageFilter())
+				.flatMap(new GetCleanedTweetTextMap())
+				.map(new GetSentimentMap());
+		cleanedTweetStream.print();
 		env.execute("Flink Streaming Java API Skeleton");
 	}
 }

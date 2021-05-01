@@ -10,6 +10,7 @@ public class MapToJson implements FlatMapFunction<String, JsonObject> {
 
     @Override
     public void flatMap(String value, Collector<JsonObject> out) throws Exception {
+        System.out.println("value :: "+value);
         JsonObject jsonObject = new JsonParser().parse(value).getAsJsonObject();
         out.collect(jsonObject);
     }

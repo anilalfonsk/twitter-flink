@@ -72,6 +72,8 @@ dependencies {
     implementation group: 'commons-logging', name: 'commons-logging', version: '1.2'
     implementation "org.apache.flink:flink-connector-twitter_${scalaBinaryVersion}:${flinkVersion}"
     implementation "com.google.code.gson:gson:2.8.5"
+    implementation "edu.stanford.nlp:stanford-corenlp:4.2.0"
+    implementation "edu.stanford.nlp:stanford-corenlp:4.2.0:models"
     compile "org.apache.flink:flink-streaming-java_${scalaBinaryVersion}:${flinkVersion}"
 
     // --------------------------------------------------------------
