@@ -36,10 +36,10 @@ public class StreamingJob {
 		// set up the streaming execution environment
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		Properties props = new Properties();
-		props.setProperty(TwitterSource.CONSUMER_KEY, "N6JDR2son3kKvcgEK64rqqkff");
-		props.setProperty(TwitterSource.CONSUMER_SECRET, "VPd1x7LNi6DKdOQt1b6kHUHdmDwm2sffojoNSOjxOuxOErZ5dC");
-		props.setProperty(TwitterSource.TOKEN, "1860582534-nfczpX0bHuXbkksREjEF857VVxAEbNEdvwJ5uPh");
-		props.setProperty(TwitterSource.TOKEN_SECRET, "VCR4Y2JfsWHLiTB0nuZjOVJ2t04fUfIS7KOwqssl2RcMq");
+		props.setProperty(TwitterSource.CONSUMER_KEY, "");
+		props.setProperty(TwitterSource.CONSUMER_SECRET, "");
+		props.setProperty(TwitterSource.TOKEN, "");
+		props.setProperty(TwitterSource.TOKEN_SECRET, "");
 		TwitterSource tws = new TwitterSource(props);
 		tws.setCustomEndpointInitializer(new SearchEndPoints());
 		DataStream<String> streamSource = env.addSource(tws);
