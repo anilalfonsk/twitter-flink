@@ -1,5 +1,0 @@
-Manifest-Version: 1.0
-Built-By: anik2
-Build-Jdk: 1.8.0_275
-Main-Class: com.aak.flink.StreamingJob
-
