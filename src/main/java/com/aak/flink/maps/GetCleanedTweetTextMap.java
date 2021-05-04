@@ -1,21 +1,14 @@
 package com.aak.flink.maps;
 
-import com.google.gson.JsonObject;
-import org.apache.flink.api.common.functions.FlatMapFunction;
+import com.aak.flink.models.ErrorModel;
+import com.aak.flink.models.TweetsInfo;
+import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.util.Collector;
 
-public class GetCleanedTweetTextMap implements FlatMapFunction<JsonObject, String> {
+public class GetCleanedTweetTextMap extends RichMapFunction<TweetsInfo, TweetsInfo> {
     @Override
-    public void flatMap(JsonObject value, Collector<String> out) throws Exception {
-        String fullTweetText = value.get("text").getAsString();
-        if(fullTweetText.startsWith("RT")){
-            fullTweetText = value.get("retweeted_status").getAsJsonObject()
-                    .get("extended_tweet").getAsJsonObject()
-                    .get("full_text").getAsString();
-        }else if(value.get("truncated").getAsBoolean()){
-            fullTweetText = value.get("extended_tweet").getAsJsonObject()
-                    .get("full_text").getAsString();
-        }
+    public TweetsInfo map(TweetsInfo value) throws Exception {
+        String fullTweetText = value.getRawTweet();
         String cleanedTweetText = fullTweetText.trim()
                 // remove links
                 .replaceAll("http.*?[\\S]+", "")
@@ -25,6 +18,8 @@ public class GetCleanedTweetTextMap implements FlatMapFunction<JsonObject, Strin
                 .replaceAll("#", "")
                 // correct all multiple white spaces to a single white space
                 .replaceAll("[\\s]+", " ");
-        out.collect(cleanedTweetText);
+        value.setCleanedTweet(cleanedTweetText);
+        return value;
     }
+
 }

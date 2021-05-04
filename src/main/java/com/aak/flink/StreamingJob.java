@@ -18,25 +18,44 @@
 
 package com.aak.flink;
 
-import com.aak.flink.constants.Sentiment;
 import com.aak.flink.endpoints.SearchEndPoints;
 import com.aak.flink.filters.EmptyFilter;
 import com.aak.flink.filters.LanguageFilter;
 import com.aak.flink.maps.GetCleanedTweetTextMap;
 import com.aak.flink.maps.GetSentimentMap;
 import com.aak.flink.maps.MapToJson;
-import com.google.gson.JsonObject;
-import org.apache.flink.api.java.tuple.Tuple2;
+import com.aak.flink.maps.MapToModel;
+import com.aak.flink.models.ErrorModel;
+import com.aak.flink.models.TweetsInfo;
+import com.aak.flink.patterns.SentimentPatterns;
+import com.aak.flink.patterns.TweetNegativePatternProcessFunction;
+import org.apache.flink.api.common.eventtime.WatermarkGenerator;
+import org.apache.flink.api.common.eventtime.WatermarkGeneratorSupplier;
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.java.functions.KeySelector;
+import org.apache.flink.cep.CEP;
+import org.apache.flink.cep.PatternStream;
+import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.IngestionTimeExtractor;
 import org.apache.flink.streaming.connectors.twitter.TwitterSource;
+import org.apache.flink.util.OutputTag;
+
+import java.util.List;
 import java.util.Properties;
 
+import static org.apache.flink.cep.CEP.pattern;
+
 public class StreamingJob {
+
+	public static final OutputTag<ErrorModel> outputTag = new OutputTag<ErrorModel>("errorOutput"){};
 
 	public static void main(String[] args) throws Exception {
 		// set up the streaming execution environment
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 		Properties props = new Properties();
 		props.setProperty(TwitterSource.CONSUMER_KEY, "");
 		props.setProperty(TwitterSource.CONSUMER_SECRET, "");
@@ -44,14 +63,31 @@ public class StreamingJob {
 		props.setProperty(TwitterSource.TOKEN_SECRET, "");
 		TwitterSource tws = new TwitterSource(props);
 		tws.setCustomEndpointInitializer(new SearchEndPoints());
-		DataStream<String> streamSource = env.addSource(tws);
-		DataStream<Tuple2<String, Sentiment>> cleanedTweetStream = streamSource
+		DataStream<String> streamSource = env.addSource(tws)
+			.assignTimestampsAndWatermarks(new IngestionTimeExtractor<>());
+		SingleOutputStreamOperator<TweetsInfo> modelStream = streamSource
 				.filter(new EmptyFilter())
 				.flatMap(new MapToJson())
 				.filter(new LanguageFilter())
-				.flatMap(new GetCleanedTweetTextMap())
+				.process(new MapToModel());
+//		modelStream.getSideOutput(StreamingJob.outputTag)
+//				.print();
+
+		DataStream<TweetsInfo> tweetWithSentimentStream = modelStream
+				.map(new GetCleanedTweetTextMap())
 				.map(new GetSentimentMap());
-		cleanedTweetStream.print();
+
+//		tweetWithSentimentStream.print();
+
+		//Analyse for continues negative sentiments
+		PatternStream<TweetsInfo> tweetsInfoPatternStream = CEP.pattern(tweetWithSentimentStream
+				.keyBy((KeySelector<TweetsInfo, String>) value -> value.getKeyWord()), SentimentPatterns.negativeSentiment);
+		DataStream<TweetsInfo> tweetsInfoDataStream = tweetsInfoPatternStream
+				.process(new TweetNegativePatternProcessFunction());
+		tweetsInfoDataStream.print();
+
+
+
 		env.execute("Flink Streaming Java API Skeleton");
 	}
 }

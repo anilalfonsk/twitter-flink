@@ -25,4 +25,19 @@ public enum Sentiment {
         }
         return NOT_DEFINED;
     }
+
+    public static boolean isSentimentNegative(Sentiment sentiment){
+        if(sentiment == NEGATIVE || sentiment == VERY_NEGATIVE) return true;
+        return false;
+    }
+
+    public static boolean isSentimentPositive(Sentiment sentiment){
+        if(sentiment == POSITIVE || sentiment == VERY_POSITIVE) return  true;
+        return false;
+    }
+
+    public static boolean isSentimentNeutral(Sentiment sentiment){
+        if(sentiment == NEUTRAL) return true;
+        return false;
+    }
 }
